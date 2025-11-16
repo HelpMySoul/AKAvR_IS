@@ -1,0 +1,6 @@
+@AKAvR_IS_HostAddress = http://localhost:5276
+
+GET {{AKAvR_IS_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
