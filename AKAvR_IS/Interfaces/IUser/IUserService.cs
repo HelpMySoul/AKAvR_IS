@@ -1,4 +1,4 @@
-﻿using AKAvR_IS.Classes;
+﻿using AKAvR_IS.Classes.User;
 
 namespace AKAvR_IS.Interfaces.IUser
 {

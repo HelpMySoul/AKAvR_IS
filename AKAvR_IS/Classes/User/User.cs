@@ -1,7 +1,7 @@
 ﻿using AKAvR_IS.Interfaces.IUser;
 using System.ComponentModel.DataAnnotations;
 
-namespace AKAvR_IS.Classes
+namespace AKAvR_IS.Classes.User
 {
     // Модели данных
     public class User : IUser

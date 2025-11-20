@@ -1,4 +1,4 @@
-﻿using AKAvR_IS.Classes;
+﻿using AKAvR_IS.Classes.User;
 using AKAvR_IS.Contexts;
 using AKAvR_IS.Interfaces.IUser;
 using Microsoft.AspNetCore.Identity;

@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using AKAvR_IS.Interfaces.IUser;
-using AKAvR_IS.Classes;
+using AKAvR_IS.Classes.User;
 
 namespace AKAvR_IS.Controllers
 {
