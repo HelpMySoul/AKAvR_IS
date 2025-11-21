@@ -1,6 +1,6 @@
 ﻿namespace AKAvR_IS.Classes.PythonExecution
 {
-    public class PythonExecutionStatistics
+    public class PythonExecutionStatistics : IPythonExecutionStatistics
     {
         public int TotalExecutions { get; set; }
         public int SuccessfulExecutions { get; set; }

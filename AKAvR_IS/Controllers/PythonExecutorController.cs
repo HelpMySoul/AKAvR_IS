@@ -1,6 +1,7 @@
 ﻿using AKAvR_IS.Classes.Execution;
 using AKAvR_IS.Classes.Execution.Batch;
 using AKAvR_IS.Classes.RequestParams;
+using AKAvR_IS.Classes.Structures.PythonExecutor;
 using AKAvR_IS.Interfaces.IPythonExecutor;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
@@ -21,21 +22,8 @@ public class PythonExecutorController : ControllerBase
     {
         try
         {
-            // Конфигурация сервиса
-            _pythonExecutorService.Configure(config =>
-            {
-                if (!string.IsNullOrEmpty(request.PythonPath))
-                    config.PythonPath = request.PythonPath;
-
-                if (!string.IsNullOrEmpty(request.WorkingDirectory))
-                    config.WorkingDirectory = request.WorkingDirectory;
-
-                if (request.Timeout.HasValue)
-                    config.TimeoutSeconds = request.Timeout.Value;
-            });
-
             // Подготовка параметров
-            var parameters = new List<IRequestParams>();
+            var parameters = new List<IRequestParam>();
             if (request.Parameters != null)
             {
                 foreach (var param in request.Parameters)
@@ -48,11 +36,9 @@ public class PythonExecutorController : ControllerBase
                 }
             }
 
+            
             // Выполнение через сервис
-            var result = await _pythonExecutorService.ExecuteScriptAsync(
-                request.ScriptPath,
-                parameters
-            );
+            var result = await _pythonExecutorService.ExecuteScriptAsync(request.ScriptName, parameters);
 
             if (result.Success)
             {
@@ -63,8 +49,7 @@ public class PythonExecutorController : ControllerBase
                     Error              = result.Error,
                     ExitCode           = result.ExitCode,
                     ExecutionTime      = result.ExecutionTime,
-                    ExecutionDate      = result.ExecutionDate,
-                    ResponseParameters = MapResponseParams(result.ResponseParams)
+                    ExecutionDate      = result.ExecutionDate
                 });
             }
             else
@@ -76,8 +61,7 @@ public class PythonExecutorController : ControllerBase
                     Error              = result.Error,
                     ExitCode           = result.ExitCode,
                     ExecutionTime      = result.ExecutionTime,
-                    ExecutionDate      = result.ExecutionDate,
-                    ResponseParameters = MapResponseParams(result.ResponseParams)
+                    ExecutionDate      = result.ExecutionDate
                 });
             }
         }
@@ -136,17 +120,35 @@ public class PythonExecutorController : ControllerBase
     }
 
     [HttpPost("batch-execute")]
-    public async Task<ActionResult<BatchExecutionResult>> BatchExecute([FromBody] BatchExecuteRequest request)
+    public async Task<ActionResult<BatchExecutionResult>> BatchExecute([FromBody] BatchExecuteRequest requests)
     {
-        var results = await _pythonExecutorService.ExecuteScriptsAsync(
-            request.ScriptRequests.Select(r => r.ScriptPath)
-        );
+        List<ScriptData> scriptDatas = new List<ScriptData>();
+
+        foreach (var request in requests.ScriptRequests)
+        {
+            var parameters = new List<IRequestParam>();
+            if (request.Parameters != null)
+            {
+                foreach (var param in request.Parameters)
+                {
+                    parameters.Add(new CustomRequestParams
+                    {
+                        ParameterName = param.Key,
+                        Value = param.Value
+                    });
+                }
+            }
+
+            scriptDatas.Add(new ScriptData(request.ScriptName, parameters));
+        }     
+        
+        var results = await _pythonExecutorService.ExecuteScriptsAsync(scriptDatas);
 
         return Ok(new BatchExecutionResult
         {
-            TotalExecutions = results.Count(),
+            TotalExecutions      = results.Count(),
             SuccessfulExecutions = results.Count(r => r.Success),
-            FailedExecutions = results.Count(r => !r.Success),
+            FailedExecutions     = results.Count(r => !r.Success),
             Results = results.Select(r => new ExecutionResult
             {
                 Success            = r.Success,
@@ -154,25 +156,8 @@ public class PythonExecutorController : ControllerBase
                 Error              = r.Error,
                 ExitCode           = r.ExitCode,
                 ExecutionTime      = r.ExecutionTime,
-                ExecutionDate      = r.ExecutionDate,
-                ResponseParameters = MapResponseParams(r.ResponseParams)
+                ExecutionDate      = r.ExecutionDate
             }).ToList()
         });
-    }
-
-    private Dictionary<string, object> MapResponseParams(IResponseParams[] responseParams)
-    {
-        var result = new Dictionary<string, object>();
-        foreach (var param in responseParams)
-        {
-            result[param.ParameterName] = new
-            {
-                Value        = param.Value,
-                Type         = param.ValueType.Name,
-                IsSuccess    = param.IsSuccess,
-                ErrorMessage = param.ErrorMessage
-            };
-        }
-        return result;
     }
 }

@@ -1,14 +1,15 @@
 ﻿using AKAvR_IS.Classes.PythonExecution;
-using AKAvR_IS.Classes.RequestParams;
+using AKAvR_IS.Classes.Structures.PythonExecutor;
 using AKAvR_IS.Interfaces.IPythonExecutor;
+using System.Diagnostics;
 
 namespace AKAvR_IS.Services
 {
     public class PythonExecutorService : IPythonExecutorService, IDisposable
     {
-        private readonly SemaphoreSlim        _semaphore;
-        private readonly PythonExecutorConfig _config = new PythonExecutorConfig();
-        
+        private readonly SemaphoreSlim         _semaphore;
+        private readonly IPythonExecutorConfig pythonExecutorConfig;
+
         private int _activeExecutions     = 0;
         private int _totalExecutions      = 0;
         private int _successfulExecutions = 0;
@@ -22,6 +23,7 @@ namespace AKAvR_IS.Services
         public PythonExecutorService()
         {
             _semaphore = new SemaphoreSlim(Environment.ProcessorCount, Environment.ProcessorCount);
+            pythonExecutorConfig = new PythonExecutorConfig();
         }
 
         public PythonExecutorService(int maxConcurrentExecutions)
@@ -30,46 +32,42 @@ namespace AKAvR_IS.Services
                 throw new ArgumentException("Max concurrent executions must be greater than 0", nameof(maxConcurrentExecutions));
 
             _semaphore = new SemaphoreSlim(maxConcurrentExecutions, maxConcurrentExecutions);
+            pythonExecutorConfig = new PythonExecutorConfig();
         }
 
-        public async Task<PythonExecutionResult> ExecuteScriptAsync(string scriptPath, CancellationToken cancellationToken = default)
-        {
-            return await ExecuteScriptAsync(scriptPath, Array.Empty<IRequestParams>(), cancellationToken);
+        public async Task<IPythonExecutionResult> ExecuteScriptAsync(string scriptName, CancellationToken cancellationToken = default)
+        {         
+            return await ExecuteScriptAsync(scriptName, Array.Empty<IRequestParam>(), cancellationToken);
         }
 
-        public async Task<PythonExecutionResult> ExecuteScriptAsync(string scriptPath, IEnumerable<IRequestParams> parameters, CancellationToken cancellationToken = default)
+        public async Task<IPythonExecutionResult> ExecuteScriptAsync(string scriptName, IEnumerable<IRequestParam> parameters, CancellationToken cancellationToken = default)
         {
-            if (string.IsNullOrWhiteSpace(scriptPath))
-                throw new ArgumentException("Script path cannot be null or empty", nameof(scriptPath));
+            string scriptPath = GetScriptPath(scriptName);
 
-            if (!File.Exists(scriptPath))
-                throw new FileNotFoundException($"Python script not found: {scriptPath}");
+            if (!ValidateScriptDirectory(scriptName))
+                return new PythonExecutionResult
+                {
+                    Success = false,
+                    ScriptPath = scriptPath,
+                    Error = $"Service execution failed: script directory does not exist",
+                    ExitCode = -1,
+                    ExecutionTime = TimeSpan.Zero                    
+                };            
 
             await _semaphore.WaitAsync(cancellationToken);
             Interlocked.Increment(ref _activeExecutions);
             Interlocked.Increment(ref _totalExecutions);
 
-            var executor = new PythonExecutor();
-            ConfigureExecutor(executor);
+            PythonExecutor pythonExecutor = new PythonExecutor();
+            pythonExecutor.SetFileName(scriptName);
+            pythonExecutor.SetRequestParams(parameters.ToArray());
+            pythonExecutor.SetWorkingDirectory(pythonExecutorConfig.WorkingDirectory);
 
             try
             {
                 var startTime = DateTime.Now;
-
-                // Добавляем путь к скрипту как первый параметр
-                var allParams = new List<IRequestParams>
-                {
-                    new ScriptPathRequestParams { ScriptPath = scriptPath }
-                };
-
-                if (parameters != null)
-                {
-                    allParams.AddRange(parameters);
-                }
-
-                executor.SetRequestParams(allParams.ToArray());
-
-                await executor.ExecuteAsync(cancellationToken);
+                
+                await pythonExecutor.ExecuteAsync(cancellationToken);
 
                 var executionTime = DateTime.Now - startTime;
                 Interlocked.Exchange(ref _lastExecutionDateTicks, DateTime.Now.Ticks);
@@ -77,13 +75,12 @@ namespace AKAvR_IS.Services
 
                 var result = new PythonExecutionResult
                 {
-                    Success        = !executor.HasErrors,
+                    Success        = !pythonExecutor.HasErrors,
                     ScriptPath     = scriptPath,
-                    Output         = executor.GetLastExecutionOutput(),
-                    Error          = executor.GetLastError(),
-                    ExitCode       = executor.GetLastExitCode(),
-                    ExecutionTime  = executionTime,
-                    ResponseParams = executor.GetResponseParams()
+                    Output         = pythonExecutor.GetLastExecutionOutput(),
+                    Error          = pythonExecutor.GetLastError(),
+                    ExitCode       = pythonExecutor.GetLastExitCode(),
+                    ExecutionTime  = executionTime
                 };
 
                 if (result.Success)
@@ -101,11 +98,7 @@ namespace AKAvR_IS.Services
                     ScriptPath     = scriptPath,
                     Error          = $"Service execution failed: {ex.Message}",
                     ExitCode       = -1,
-                    ExecutionTime  = TimeSpan.Zero,
-                    ResponseParams = new IResponseParams[]
-                    {
-                        new ErrorResponseParams { ErrorMessage = ex.Message }
-                    }
+                    ExecutionTime  = TimeSpan.Zero
                 };
             }
             finally
@@ -115,53 +108,49 @@ namespace AKAvR_IS.Services
             }
         }
 
-        public PythonExecutionResult ExecuteScript(string scriptPath)
+        public IPythonExecutionResult ExecuteScript(string scriptName)
         {
-            return ExecuteScript(scriptPath, Array.Empty<IRequestParams>());
+            string scriptPath = GetScriptPath(scriptName);
+            return ExecuteScript(scriptPath, Array.Empty<IRequestParam>());
         }
 
-        public PythonExecutionResult ExecuteScript(string scriptPath, IEnumerable<IRequestParams> parameters)
+        public IPythonExecutionResult ExecuteScript(string scriptName, IEnumerable<IRequestParam> parameters)
         {
+            string scriptPath = GetScriptPath(scriptName);
             return ExecuteScriptAsync(scriptPath, parameters).GetAwaiter().GetResult();
         }
 
-        public async Task<IEnumerable<PythonExecutionResult>> ExecuteScriptsAsync(IEnumerable<string> scriptPaths, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<IPythonExecutionResult>> ExecuteScriptsAsync(IEnumerable<ScriptData> scriptDatas, CancellationToken cancellationToken = default)
         {
-            if (scriptPaths == null)
-                throw new ArgumentNullException(nameof(scriptPaths));
+            if (scriptDatas == null)
+                throw new ArgumentNullException(nameof(scriptDatas));
 
-            var tasks = new List<Task<PythonExecutionResult>>();
+            var tasks = new List<Task<IPythonExecutionResult>>();
 
-            foreach (var scriptPath in scriptPaths)
+            foreach (var scriptData in scriptDatas)
             {
-                tasks.Add(ExecuteScriptAsync(scriptPath, cancellationToken));
+                tasks.Add(ExecuteScriptAsync(scriptData.ScriptName, scriptData.Parameters, cancellationToken));
             }
 
             return await Task.WhenAll(tasks);
         }
 
-        public void Configure(Action<PythonExecutorConfig> configureAction)
+        
+
+        public void Configure(Action<IPythonExecutorConfig> configureAction)
         {
             if (configureAction == null)
                 throw new ArgumentNullException(nameof(configureAction));
 
-            configureAction(_config);
+            configureAction(pythonExecutorConfig);
         }
 
-        public PythonExecutorConfig GetCurrentConfig()
-        {
-            return new PythonExecutorConfig
-            {
-                PythonPath             = _config.PythonPath,
-                WorkingDirectory       = _config.WorkingDirectory,
-                TimeoutSeconds         = _config.TimeoutSeconds,
-                RedirectStandardOutput = _config.RedirectStandardOutput,
-                RedirectStandardError  = _config.RedirectStandardError,
-                OutputEncoding         = _config.OutputEncoding
-            };
+        public IPythonExecutorConfig GetCurrentConfig()
+        {            
+            return pythonExecutorConfig;
         }
 
-        public PythonExecutionStatistics GetStatistics()
+        public IPythonExecutionStatistics GetStatistics()
         {
             var total              = _totalExecutions;
             var successful         = _successfulExecutions;
@@ -181,10 +170,18 @@ namespace AKAvR_IS.Services
         public bool ValidatePythonEnvironment()
         {
             try
-            {
-                var executor = new PythonExecutor();
-                ConfigureExecutor(executor);
-                return executor.ValidateScript();
+            {                
+                if (string.IsNullOrEmpty(pythonExecutorConfig.FileName))
+                    return false;
+
+                if (!File.Exists(pythonExecutorConfig.FileName) && !IsCommandAvailable(pythonExecutorConfig.FileName))
+                    return false;
+
+                if (!Directory.Exists(pythonExecutorConfig.WorkingDirectory))
+                    return false;
+
+                return true;       
+                
             }
             catch
             {
@@ -192,23 +189,48 @@ namespace AKAvR_IS.Services
             }
         }
 
-        public bool ValidateScript(string scriptPath)
+        private bool IsCommandAvailable(string fileName)
         {
+            try
+            {
+                using (var process = new Process())
+                {
+                    process.StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "python3",
+                        Arguments = "--version",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+                    process.Start();
+                    process.WaitForExit(1000);
+                    return process.ExitCode == 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public bool ValidateScriptDirectory(string scriptName)
+        {
+            string scriptPath = GetScriptPath(scriptName);
             return !string.IsNullOrWhiteSpace(scriptPath) &&
                    File.Exists(scriptPath) &&
                    Path.GetExtension(scriptPath).ToLower() == ".py";
         }
 
-        private void ConfigureExecutor(PythonExecutor executor)
-        {
-            executor.SetPythonPath(_config.PythonPath);
-            executor.SetWorkingDirectory(_config.WorkingDirectory);
-            executor.SetTimeout(_config.Timeout);
-        }
-
         public void Dispose()
         {
             _semaphore?.Dispose();
+        }
+
+        private string GetScriptPath(string scriptName)
+        {
+            return pythonExecutorConfig.WorkingDirectory + "/" + scriptName;
         }
     }
 }

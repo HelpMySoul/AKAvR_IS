@@ -2,7 +2,7 @@
 
 namespace AKAvR_IS.Classes.PythonExecution
 {
-    public class PythonExecutionResult
+    public class PythonExecutionResult : IPythonExecutionResult
     {
         public bool Success { get; set; }
         public string ScriptPath { get; set; } = string.Empty;
@@ -10,7 +10,6 @@ namespace AKAvR_IS.Classes.PythonExecution
         public string Error { get; set; } = string.Empty;
         public int ExitCode { get; set; }
         public TimeSpan ExecutionTime { get; set; }
-        public IResponseParams[] ResponseParams { get; set; } = Array.Empty<IResponseParams>();
         public DateTime ExecutionDate { get; set; } = DateTime.Now;
     }
 }

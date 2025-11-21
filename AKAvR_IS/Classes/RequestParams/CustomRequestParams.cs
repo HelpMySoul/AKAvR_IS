@@ -2,7 +2,7 @@
 
 namespace AKAvR_IS.Classes.RequestParams
 {
-    public class CustomRequestParams : IRequestParams
+    public class CustomRequestParams : IRequestParam
     {
         public required string ParameterName { get; set; }
         public object Value { get; set; } = string.Empty;

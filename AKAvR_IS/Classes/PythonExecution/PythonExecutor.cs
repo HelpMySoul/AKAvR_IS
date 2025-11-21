@@ -12,8 +12,8 @@ namespace AKAvR_IS.Classes.PythonExecution
 {
     public class PythonExecutor : IPythonExecutor
     {
-        private readonly List<IRequestParams> _requestParams = new List<IRequestParams>();
-        private IResponseParams[] _responseParams            = Array.Empty<IResponseParams>();
+        private readonly List<IRequestParam> _requestParams = new List<IRequestParam>();
+        private IResponseParam[] _responseParams            = Array.Empty<IResponseParam>();
         private PythonExecutorConfig _config                 = new PythonExecutorConfig();
         private string _lastOutput                           = string.Empty;
         private string _lastError                            = string.Empty;
@@ -25,7 +25,7 @@ namespace AKAvR_IS.Classes.PythonExecution
         public bool HasErrors             => !string.IsNullOrEmpty(_lastError) || _lastExitCode != 0;
         public DateTime LastExecutionTime => _lastExecutionTime;
 
-        public void SetRequestParams(params IRequestParams[] requestParams)
+        public void SetRequestParams(params IRequestParam[] requestParams)
         {
             _requestParams.Clear();
             if (requestParams != null)
@@ -53,19 +53,32 @@ namespace AKAvR_IS.Classes.PythonExecution
             {
                 var startTime = DateTime.Now;
 
+                Console.WriteLine("=== Параметры запуска Python ===");
+                Console.WriteLine($"FileName:               {_config.FileName}");
+                Console.WriteLine($"Arguments:              {BuildPythonArguments()}");
+                Console.WriteLine($"WorkingDirectory:       {_config.WorkingDirectory}");
+                Console.WriteLine($"RedirectStandardOutput: {_config.RedirectStandardOutput}");
+                Console.WriteLine($"RedirectStandardError:  {_config.RedirectStandardError}");
+                Console.WriteLine($"UseShellExecute:        {false}");
+                Console.WriteLine($"CreateNoWindow:         {true}");
+                Console.WriteLine($"StandardOutputEncoding: {_config.OutputEncoding?.EncodingName ?? "null"}");
+                Console.WriteLine($"StandardErrorEncoding:  {_config.OutputEncoding?.EncodingName ?? "null"}");
+                Console.WriteLine("=================================");
+
+                
                 using (var process = new Process())
                 {
                     process.StartInfo = new ProcessStartInfo
                     {
-                        FileName               = _config.PythonPath,
-                        Arguments              = BuildPythonArguments(),
-                        WorkingDirectory       = _config.WorkingDirectory,
+                        FileName = "python3",
+                        Arguments = _config.FileName + " " + BuildPythonArguments(),
+                        WorkingDirectory = _config.WorkingDirectory,
                         RedirectStandardOutput = _config.RedirectStandardOutput,
-                        RedirectStandardError  = _config.RedirectStandardError,
-                        UseShellExecute        = false,
-                        CreateNoWindow         = true,
+                        RedirectStandardError = _config.RedirectStandardError,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
                         StandardOutputEncoding = _config.OutputEncoding,
-                        StandardErrorEncoding  = _config.OutputEncoding
+                        StandardErrorEncoding = _config.OutputEncoding
                     };
 
                     var outputBuilder = new StringBuilder();
@@ -126,7 +139,7 @@ namespace AKAvR_IS.Classes.PythonExecution
             catch (Exception ex)
             {
                 _lastError = $"Execution failed: {ex.Message}";
-                _responseParams = new IResponseParams[]
+                _responseParams = new IResponseParam[]
                 {
                     new ErrorResponseParams { ErrorMessage = _lastError }
                 };
@@ -138,17 +151,17 @@ namespace AKAvR_IS.Classes.PythonExecution
             }
         }
 
-        public IResponseParams[] GetResponseParams()
+        public IResponseParam[] GetResponseParams()
         {
             return _responseParams;
         }
 
         public bool ValidateScript()
         {
-            if (string.IsNullOrEmpty(_config.PythonPath))
+            if (string.IsNullOrEmpty(_config.FileName))
                 return false;
 
-            if (!File.Exists(_config.PythonPath) && !IsCommandAvailable(_config.PythonPath))
+            if (!File.Exists(_config.FileName) && !IsCommandAvailable(_config.FileName))
                 return false;
 
             if (!Directory.Exists(_config.WorkingDirectory))
@@ -157,9 +170,9 @@ namespace AKAvR_IS.Classes.PythonExecution
             return true;
         }
 
-        public void SetPythonPath(string pythonExecutablePath)
+        public void SetFileName(string fileName)
         {
-            _config.PythonPath = pythonExecutablePath ?? throw new ArgumentNullException(nameof(pythonExecutablePath));
+            _config.FileName = fileName ?? throw new ArgumentNullException(nameof(fileName));
         }
 
         public void SetWorkingDirectory(string workingDirectory)
@@ -196,10 +209,8 @@ namespace AKAvR_IS.Classes.PythonExecution
 
             foreach (var param in _requestParams)
             {
-                if (param is CommandLineRequestParams cmdParam)
-                {
-                    args.Add(cmdParam.ToCommandLineArgument());
-                }
+                args.Add(param.ParameterName);
+                args.Add(Convert.ToString(param.Value) ?? string.Empty);
             }
 
             return string.Join(" ", args);
@@ -207,7 +218,7 @@ namespace AKAvR_IS.Classes.PythonExecution
 
         private void ProcessResponse(string output, string error, int exitCode)
         {
-            var responses = new List<IResponseParams>();
+            var responses = new List<IResponseParam>();
 
             if (exitCode == 0 && string.IsNullOrEmpty(error))
             {
@@ -265,9 +276,14 @@ namespace AKAvR_IS.Classes.PythonExecution
                 return false;
             }
         }
+
+        public IPythonExecutorConfig GetConfig()
+        {
+            return _config;
+        }
     }
 
-    public class CommandLineRequestParams : IRequestParams
+    public class CommandLineRequestParams : IRequestParam
     {
         public required string ParameterName { get; set; }
         public required Type ValueType { get; set; }
@@ -280,7 +296,7 @@ namespace AKAvR_IS.Classes.PythonExecution
         }
     }
 
-    public class SuccessResponseParams : IResponseParams
+    public class SuccessResponseParams : IResponseParam
     {
         public string Output { get; set; } = string.Empty;
         public DateTime ExecutionTime { get; set; }
@@ -292,7 +308,7 @@ namespace AKAvR_IS.Classes.PythonExecution
         public string ErrorMessage => string.Empty;
     }
 
-    public class ErrorResponseParams : IResponseParams
+    public class ErrorResponseParams : IResponseParam
     {
         public string ErrorMessage { get; set; } = string.Empty;
         public int ExitCode { get; set; }

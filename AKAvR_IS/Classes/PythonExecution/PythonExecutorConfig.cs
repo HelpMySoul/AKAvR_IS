@@ -1,10 +1,11 @@
-﻿using System.Text;
+﻿using AKAvR_IS.Interfaces.IPythonExecutor;
+using System.Text;
 
 namespace AKAvR_IS.Classes.PythonExecution
 {
-    public class PythonExecutorConfig
+    public class PythonExecutorConfig : IPythonExecutorConfig
     {
-        public string PythonPath       { get; set; } = "python";
+        public string FileName         { get; set; } = "file_name";
         public string WorkingDirectory { get; set; } = Directory.GetCurrentDirectory();
 
         public int TimeoutSeconds          { get; set; } = 300;

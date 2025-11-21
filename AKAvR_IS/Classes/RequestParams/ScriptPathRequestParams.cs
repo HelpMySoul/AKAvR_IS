@@ -2,7 +2,7 @@
 
 namespace AKAvR_IS.Classes.RequestParams
 {
-    public class ScriptPathRequestParams : IRequestParams
+    public class ScriptPathRequestParams : IRequestParam
     {
         public string ScriptPath { get; set; } = string.Empty;
 

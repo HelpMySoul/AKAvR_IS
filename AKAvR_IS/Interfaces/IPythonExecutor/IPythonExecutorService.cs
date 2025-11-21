@@ -1,29 +1,30 @@
 ﻿using AKAvR_IS.Classes.PythonExecution;
+using AKAvR_IS.Classes.Structures.PythonExecutor;
 using AKAvR_IS.Interfaces.IPythonExecutor;
 
 public interface IPythonExecutorService
 {
     // Основные методы выполнения
-    Task<PythonExecutionResult> ExecuteScriptAsync(string scriptPath, CancellationToken cancellationToken = default);
-    Task<PythonExecutionResult> ExecuteScriptAsync(string scriptPath, IEnumerable<IRequestParams> parameters, CancellationToken cancellationToken = default);
+    Task<IPythonExecutionResult> ExecuteScriptAsync(string scriptName, CancellationToken cancellationToken = default);
+    Task<IPythonExecutionResult> ExecuteScriptAsync(string scriptName, IEnumerable<IRequestParam> parameters, CancellationToken cancellationToken = default);
 
     // Синхронные версии
-    PythonExecutionResult ExecuteScript(string scriptPath);
-    PythonExecutionResult ExecuteScript(string scriptPath, IEnumerable<IRequestParams> parameters);
+    IPythonExecutionResult ExecuteScript(string scriptName);
+    IPythonExecutionResult ExecuteScript(string scriptName, IEnumerable<IRequestParam> parameters);
 
     // Пакетное выполнение
-    Task<IEnumerable<PythonExecutionResult>> ExecuteScriptsAsync(IEnumerable<string> scriptPaths, CancellationToken cancellationToken = default);
+    Task<IEnumerable<IPythonExecutionResult>> ExecuteScriptsAsync(IEnumerable<ScriptData> scriptDatas, CancellationToken cancellationToken = default);
 
     // Управление конфигурацией
-    void Configure(Action<PythonExecutorConfig> configureAction);
-    PythonExecutorConfig GetCurrentConfig();
+    void Configure(Action<IPythonExecutorConfig> configureAction);
+    IPythonExecutorConfig GetCurrentConfig();
 
     // Состояние и статистика
     bool IsBusy { get; }
     int ActiveExecutions { get; }
-    PythonExecutionStatistics GetStatistics();
+    IPythonExecutionStatistics GetStatistics();
 
     // Валидация
     bool ValidatePythonEnvironment();
-    bool ValidateScript(string scriptPath);
+    bool ValidateScriptDirectory(string scriptName);
 }

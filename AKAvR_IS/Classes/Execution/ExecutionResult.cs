@@ -9,7 +9,6 @@ namespace AKAvR_IS.Classes.Execution
         public string? Error { get; set; }
         public int ExitCode { get; set; }
         public TimeSpan ExecutionTime { get; set; }        
-        public Dictionary<string, object>? ResponseParameters { get; set; }
         public DateTime ExecutionDate { get; set; }
 
     }

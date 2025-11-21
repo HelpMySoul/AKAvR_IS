@@ -54,7 +54,7 @@ namespace AKAvR_IS.Controllers
                 return BadRequest(ModelState);
             }
 
-            var createdUser = _userService.RegisterUserAsync(request);            
+            var createdUser = await _userService.RegisterUserAsync(request);            
 
             await _userService.SaveChangesAsync();
 

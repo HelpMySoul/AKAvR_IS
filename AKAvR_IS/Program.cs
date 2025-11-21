@@ -26,7 +26,7 @@ builder.Services.AddSingleton<IPythonExecutorService>(provider =>
     var service = new PythonExecutorService(config.MaxConcurrentExecutions);
     service.Configure(c =>
     {
-        c.PythonPath = config.PythonPath;
+        c.FileName = config.FileName;
         c.WorkingDirectory = string.IsNullOrEmpty(config.WorkingDirectory)
             ? Directory.GetCurrentDirectory()
             : config.WorkingDirectory;

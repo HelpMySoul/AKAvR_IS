@@ -1,15 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace AKAvR_IS.Classes.Execution
 {
     public class ExecuteScriptRequest
     {
         [Required]
-        public string ScriptPath { get; set; } = string.Empty;
-
-        public string? PythonPath { get; set; }
-        public string? WorkingDirectory { get; set; }
-        public int? Timeout { get; set; } // в секундах
+        public string ScriptName { get; set; } = string.Empty;
+        [Required]
         public Dictionary<string, object>? Parameters { get; set; }
     }
 }

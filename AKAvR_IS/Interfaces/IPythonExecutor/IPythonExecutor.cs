@@ -3,16 +3,18 @@
     public interface IPythonExecutor
     {
         // Основные методы выполнения
-        public void SetRequestParams(params IRequestParams[] requestParams);
+        public void SetRequestParams(params IRequestParam[] requestParams);
         public void Execute();
-        public IResponseParams[] GetResponseParams();
+        public IResponseParam[] GetResponseParams();
         public Task ExecuteAsync(CancellationToken cancellationToken = default);
         public bool ValidateScript();
 
         // Конфигурация
-        public void SetPythonPath(string pythonExecutablePath);
+        public void SetFileName(string fileName);
         public void SetWorkingDirectory(string workingDirectory);
         public void SetTimeout(TimeSpan timeout);
+
+        public IPythonExecutorConfig GetConfig();
 
         // Логирование и диагностика
         public string GetLastExecutionOutput();
@@ -25,14 +27,14 @@
         public DateTime LastExecutionTime { get; }
     }
 
-    public interface IRequestParams
+    public interface IRequestParam
     {
         string ParameterName { get; }
         object Value { get; }
         Type ValueType { get; }
     }
 
-    public interface IResponseParams
+    public interface IResponseParam
     {
         string ParameterName { get; }
         object Value { get; }
