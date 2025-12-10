@@ -12,8 +12,8 @@ namespace AKAvR_IS.Classes.PythonExecution
 {
     public class PythonExecutor : IPythonExecutor
     {
-        private readonly List<IRequestParam> _requestParams = new List<IRequestParam>();
-        private IResponseParam[] _responseParams            = Array.Empty<IResponseParam>();
+        private readonly List<IRequestParam> _requestParams  = new List<IRequestParam>();
+        private IResponseParam[] _responseParams             = Array.Empty<IResponseParam>();
         private PythonExecutorConfig _config                 = new PythonExecutorConfig();
         private string _lastOutput                           = string.Empty;
         private string _lastError                            = string.Empty;
@@ -53,7 +53,7 @@ namespace AKAvR_IS.Classes.PythonExecution
             {
                 var startTime = DateTime.Now;
 
-                Console.WriteLine("=== Параметры запуска Python ===");
+                Console.WriteLine("=== Python launch params ===");
                 Console.WriteLine($"FileName:               {_config.FileName}");
                 Console.WriteLine($"Arguments:              {BuildPythonArguments()}");
                 Console.WriteLine($"WorkingDirectory:       {_config.WorkingDirectory}");

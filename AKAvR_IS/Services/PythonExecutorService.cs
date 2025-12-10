@@ -135,8 +135,6 @@ namespace AKAvR_IS.Services
             return await Task.WhenAll(tasks);
         }
 
-        
-
         public void Configure(Action<IPythonExecutorConfig> configureAction)
         {
             if (configureAction == null)
@@ -165,6 +163,233 @@ namespace AKAvR_IS.Services
                 AverageExecutionTime = total > 0 ? TimeSpan.FromTicks(totalExecutionTime.Ticks / total) : TimeSpan.Zero,
                 LastExecutionDate    = new DateTime(Interlocked.Read(ref _lastExecutionDateTicks))
             };
+        }
+
+        public async Task<ILibraryInstallationResult> InstallLibrariesAsync(IEnumerable<string> libraries, CancellationToken cancellationToken = default)
+        {
+            return await InstallLibrariesAsync(libraries, null, "", cancellationToken);
+        }
+
+        public async Task<ILibraryInstallationResult> InstallLibrariesAsync(IEnumerable<string> libraries, Dictionary<string, string>? versions, string extraPipOptions, CancellationToken cancellationToken = default)
+        {
+            if (libraries == null || !libraries.Any())
+            {
+                return new LibraryInstallationResult
+                {
+                    Success = false,
+                    Message = "No libraries provided for installation",
+                    InstalledLibraries = new List<string>(),
+                    FailedLibraries = new List<string>(),
+                    InstallationTime = DateTime.Now
+                };
+            }
+
+            // Проверяем доступность pip
+            if (!IsPipAvailable())
+            {
+                return new LibraryInstallationResult
+                {
+                    Success = false,
+                    Message = "Pip is not available on the system. Please ensure Python and pip are installed.",
+                    InstalledLibraries = new List<string>(),
+                    FailedLibraries = libraries.ToList(),
+                    InstallationTime = DateTime.Now
+                };
+            }
+
+            await _semaphore.WaitAsync(cancellationToken);
+            Interlocked.Increment(ref _activeExecutions);
+
+            var installed = new List<string>();
+            var failed = new List<string>();
+
+            try
+            {
+                foreach (var library in libraries)
+                {
+                    try
+                    {
+                        Console.WriteLine($"Starting installation of {library}...");
+
+                        string version = versions != null && versions.ContainsKey(library)
+                            ? $"=={versions[library]}"
+                            : "";
+
+                        var result = await InstallLibraryAsync(library, version, extraPipOptions, cancellationToken);
+
+                        if (result)
+                        {
+                            Console.WriteLine($"Successfully installed {library}");
+                            installed.Add(library);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Failed to install {library}");
+                            failed.Add(library);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Exception during installation of {library}: {ex.Message}");
+                        failed.Add(library);
+                    }
+                }
+
+                var message = failed.Any()
+                    ? $"Installed {installed.Count} libraries, failed to install {failed.Count} libraries"
+                    : $"Successfully installed all {installed.Count} libraries";
+
+                Console.WriteLine($"Installation completed: {message}");
+
+                return new LibraryInstallationResult
+                {
+                    Success = !failed.Any(),
+                    Message = message,
+                    InstalledLibraries = installed,
+                    FailedLibraries = failed,
+                    InstallationTime = DateTime.Now
+                };
+            }
+            finally
+            {
+                _semaphore.Release();
+                Interlocked.Decrement(ref _activeExecutions);
+            }
+        }
+
+        private async Task<bool> InstallLibraryAsync(string libraryName, string version, string extraPipOptions, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using (var process = new Process())
+                {
+                    var packageSpec = string.IsNullOrEmpty(version)
+                        ? libraryName
+                        : $"{libraryName}{version}";
+
+                    var arguments = $"install {packageSpec}";
+
+                    // Добавим флаг --user для установки в домашнюю директорию пользователя
+                    // Это может помочь с правами доступа
+                    arguments += " --quiet --user";
+
+                    if (!string.IsNullOrEmpty(extraPipOptions))
+                    {
+                        arguments += $" {extraPipOptions}";
+                    }
+
+                    process.StartInfo = new ProcessStartInfo
+                    {
+                        FileName = GetPipExecutable(),
+                        Arguments = arguments,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WorkingDirectory = pythonExecutorConfig.WorkingDirectory,
+                        // Добавим переменные окружения, если нужно
+                        Environment = {
+                    ["PYTHONPATH"] = pythonExecutorConfig.WorkingDirectory
+                }
+                    };
+
+                    Console.WriteLine($"Executing: {process.StartInfo.FileName} {process.StartInfo.Arguments}");
+
+                    process.Start();
+
+                    var output = await process.StandardOutput.ReadToEndAsync();
+                    var error = await process.StandardError.ReadToEndAsync();
+
+                    // Логируем вывод для отладки
+                    if (!string.IsNullOrEmpty(output))
+                        Console.WriteLine($"Pip output: {output}");
+                    if (!string.IsNullOrEmpty(error))
+                        Console.WriteLine($"Pip error: {error}");
+
+                    await process.WaitForExitAsync(cancellationToken);
+
+                    Console.WriteLine($"Pip exit code: {process.ExitCode} for library: {libraryName}");
+
+                    return process.ExitCode == 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Exception installing {libraryName}: {ex.Message}");
+                return false;
+            }
+        }
+
+        private string GetPipExecutable()
+        {
+            // Пробуем разные варианты имени pip
+            var possiblePipNames = new[] { "pip", "pip3", "python3 -m pip", "python -m pip", "py -m pip" };
+
+            foreach (var pipName in possiblePipNames)
+            {
+                try
+                {
+                    using (var process = new Process())
+                    {
+                        process.StartInfo = new ProcessStartInfo
+                        {
+                            FileName = pipName.Contains(" ") ? pipName.Split(' ')[0] : pipName,
+                            Arguments = pipName.Contains(" ") ? string.Join(" ", pipName.Split(' ').Skip(1)) + " --version" : "--version",
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+
+                        process.Start();
+                        process.WaitForExit(2000);
+
+                        if (process.ExitCode == 0)
+                        {
+                            Console.WriteLine($"Using pip executable: {pipName}");
+                            return pipName;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Продолжаем пробовать следующий вариант
+                }
+            }
+
+            Console.WriteLine("No pip executable found, using default 'pip'");
+            return "pip";
+        }
+        public bool IsPipAvailable()
+        {
+            try
+            {
+                using (var process = new Process())
+                {
+                    process.StartInfo = new ProcessStartInfo
+                    {
+                        FileName = GetPipExecutable().Contains(" ")
+                            ? GetPipExecutable().Split(' ')[0]
+                            : GetPipExecutable(),
+                        Arguments = GetPipExecutable().Contains(" ")
+                            ? string.Join(" ", GetPipExecutable().Split(' ').Skip(1)) + " --version"
+                            : "--version",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    };
+
+                    process.Start();
+                    process.WaitForExit(2000);
+
+                    return process.ExitCode == 0;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public bool ValidatePythonEnvironment()

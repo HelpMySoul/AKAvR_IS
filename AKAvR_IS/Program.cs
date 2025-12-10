@@ -13,8 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IPasswordHasher,          PasswordHasher>();
+builder.Services.AddScoped<IUserService,             UserService>();
+builder.Services.AddScoped<IPythonEnvironmentHelper, PythonEnvironmentHelper>();
 
 builder.Services.Configure<PythonExecutorConfig>(
     builder.Configuration.GetSection("PythonExecutorConfig"));

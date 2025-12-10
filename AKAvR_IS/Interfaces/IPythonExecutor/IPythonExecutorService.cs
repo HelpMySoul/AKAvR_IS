@@ -1,6 +1,7 @@
 ﻿using AKAvR_IS.Classes.PythonExecution;
 using AKAvR_IS.Classes.Structures.PythonExecutor;
 using AKAvR_IS.Interfaces.IPythonExecutor;
+using AKAvR_IS.Services;
 
 public interface IPythonExecutorService
 {
@@ -27,4 +28,10 @@ public interface IPythonExecutorService
     // Валидация
     bool ValidatePythonEnvironment();
     bool ValidateScriptDirectory(string scriptName);
+
+    // Библиотеки
+    Task<ILibraryInstallationResult> InstallLibrariesAsync(IEnumerable<string> libraries, CancellationToken cancellationToken = default);
+    Task<ILibraryInstallationResult> InstallLibrariesAsync(IEnumerable<string> libraries, Dictionary<string, string> versions, string extraPipOptions, CancellationToken cancellationToken = default);
+
+    bool IsPipAvailable();
 }
