@@ -114,7 +114,7 @@ public class PythonExecutorController : ControllerBase
                 process.StartInfo = new ProcessStartInfo
                 {
                     FileName               = pythonExe,
-                    Arguments              = "-m pip list --format=json",
+                    Arguments               = arguments,
                     RedirectStandardOutput = true,
                     RedirectStandardError  = true,
                     UseShellExecute        = false,
