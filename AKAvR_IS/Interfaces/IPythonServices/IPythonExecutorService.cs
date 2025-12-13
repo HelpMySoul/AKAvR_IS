@@ -1,7 +1,8 @@
 ﻿using AKAvR_IS.Classes.PythonExecution;
 using AKAvR_IS.Classes.Structures.PythonExecutor;
+using AKAvR_IS.Interfaces.Execute;
 using AKAvR_IS.Interfaces.IPythonExecutor;
-using AKAvR_IS.Services;
+using AKAvR_IS.Interfaces.IPythonExecutorResult;
 
 public interface IPythonExecutorService
 {
@@ -34,4 +35,11 @@ public interface IPythonExecutorService
     Task<ILibraryInstallationResult> InstallLibrariesAsync(IEnumerable<string> libraries, Dictionary<string, string> versions, string extraPipOptions, CancellationToken cancellationToken = default);
 
     bool IsPipAvailable();
+
+    Task<ITestInstallResult> TestInstallationAsync(string library = "tensorflow>=2.10.0", CancellationToken cancellationToken = default);
+    Task<ICheckInstalledResult> CheckInstalledPackagesAsync(CancellationToken cancellationToken = default);
+    Task<IPythonVersionResult> CheckPythonVersionAsync(CancellationToken cancellationToken = default);
+    IPipStatusResult GetPipStatus();
+    IExecutionValidationResult ValidateEnvironment();
+    IExecutionStatus GetStatus();
 }

@@ -5,6 +5,7 @@ using AKAvR_IS.Interfaces.IPythonExecutor;
 using AKAvR_IS.Interfaces.IUser;
 using AKAvR_IS.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,9 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<IPasswordHasher,          PasswordHasher>();
-builder.Services.AddScoped<IUserService,             UserService>();
-builder.Services.AddScoped<IPythonEnvironmentHelper, PythonEnvironmentHelper>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+// ???????? ?? Singleton
+builder.Services.AddSingleton<IPythonEnvironmentHelper, PythonEnvironmentHelper>();
 
 builder.Services.Configure<PythonExecutorConfig>(
     builder.Configuration.GetSection("PythonExecutorConfig"));
@@ -23,8 +26,12 @@ builder.Services.Configure<PythonExecutorConfig>(
 builder.Services.AddSingleton<IPythonExecutorService>(provider =>
 {
     var config = provider.GetRequiredService<IOptions<PythonExecutorConfig>>().Value;
+    var pythonEnvironmentHelper = provider.GetRequiredService<IPythonEnvironmentHelper>();
 
-    var service = new PythonExecutorService(config.MaxConcurrentExecutions);
+    var service = new PythonExecutorService(
+        config.MaxConcurrentExecutions,
+        pythonEnvironmentHelper);
+
     service.Configure(c =>
     {
         c.FileName = config.FileName;
@@ -32,7 +39,7 @@ builder.Services.AddSingleton<IPythonExecutorService>(provider =>
             ? Directory.GetCurrentDirectory()
             : config.WorkingDirectory;
         c.TimeoutSeconds = config.TimeoutSeconds;
-        c.RedirectStandardOutput = config.RedirectStandardOutput;
+        c.RedirectStandardOutput = config.RedirectStandardError;
         c.RedirectStandardError = config.RedirectStandardError;
         c.OutputEncoding = config.OutputEncoding;
     });

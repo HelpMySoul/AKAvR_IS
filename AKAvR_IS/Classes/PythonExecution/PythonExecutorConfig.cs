@@ -6,6 +6,7 @@ namespace AKAvR_IS.Classes.PythonExecution
     public class PythonExecutorConfig : IPythonExecutorConfig
     {
         public string FileName         { get; set; } = "file_name";
+        public string PythonPath       { get; set; } = "python3";
         public string WorkingDirectory { get; set; } = Directory.GetCurrentDirectory();
 
         public int TimeoutSeconds          { get; set; } = 300;

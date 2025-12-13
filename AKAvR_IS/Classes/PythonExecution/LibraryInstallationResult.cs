@@ -1,4 +1,4 @@
-﻿using AKAvR_IS.Services;
+﻿using AKAvR_IS.Interfaces.Execute;
 
 public class LibraryInstallationResult : ILibraryInstallationResult 
 { 

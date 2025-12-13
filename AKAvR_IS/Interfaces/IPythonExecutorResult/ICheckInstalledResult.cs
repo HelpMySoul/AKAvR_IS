@@ -1,0 +1,12 @@
+﻿namespace AKAvR_IS.Interfaces.IPythonExecutorResult
+{
+    public interface ICheckInstalledResult
+    {
+        public bool Success      { get; set; }
+        public string PythonPath { get; set; }
+        public string Output     { get; set; }
+        public string Error      { get; set; }
+        public int ExitCode      { get; set; }
+        public string Message    { get; set; }
+    }
+}

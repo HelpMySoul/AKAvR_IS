@@ -12,6 +12,7 @@
         // Конфигурация
         public void SetFileName(string fileName);
         public void SetWorkingDirectory(string workingDirectory);
+        public void SetPythonPath(string pythonPath);
         public void SetTimeout(TimeSpan timeout);
 
         public IPythonExecutorConfig GetConfig();

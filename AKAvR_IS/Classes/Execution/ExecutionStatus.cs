@@ -1,6 +1,8 @@
-﻿namespace AKAvR_IS.Classes.Execution
+﻿using AKAvR_IS.Interfaces.Execute;
+
+namespace AKAvR_IS.Classes.Execution
 {
-    public class ExecutionStatus
+    public class ExecutionStatus : IExecutionStatus
     {
         public bool IsExecuting                 { get; set; }
         public bool HasErrors                   { get; set; }

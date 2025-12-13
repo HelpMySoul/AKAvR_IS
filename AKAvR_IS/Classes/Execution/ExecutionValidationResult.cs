@@ -1,6 +1,8 @@
-﻿namespace AKAvR_IS.Classes.Execution
+﻿using AKAvR_IS.Interfaces.Execute;
+
+namespace AKAvR_IS.Classes.Execution
 {
-    public class ExecutionValidationResult
+    public class ExecutionValidationResult : IExecutionValidationResult
     {
         public bool IsValid             { get; set; }
         public string Message           { get; set; } = string.Empty;

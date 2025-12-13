@@ -1,103 +1,95 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 
 internal class PythonEnvironmentHelper : IPythonEnvironmentHelper
 {
-    private string _cachePythonExecutable = "";
-    private readonly object _lock = new object();
-    private bool _isSearchPerformed = false;
+    private readonly IConfiguration _configuration;
+    private readonly string _pythonPath;
+    private readonly string _pythonVersion;
 
-    public PythonEnvironmentHelper()
+    public PythonEnvironmentHelper(IConfiguration configuration)
     {
+        if (configuration is null)
+        {
+            throw new ArgumentNullException(nameof(configuration));
+        }
 
+        _configuration = configuration;
+
+        _pythonPath = _configuration["Python:ExecutablePath"]!;
+
+        if (string.IsNullOrEmpty(_pythonPath))
+        {
+            throw new InvalidOperationException(
+                "Python:ExecutablePath is not configured in appsettings.json");
+        }
+
+        _pythonVersion = _configuration["Python:Version"] ?? "3.11";
+
+        ValidatePythonPath();
     }
 
     public string GetPipExecutable()
     {
-        var pythonExe = GetPythonExecutable();
-        return $"{pythonExe} -m pip";
+        return $"{_pythonPath} -m pip";
     }
 
     public string GetPythonExecutable()
     {
-        // Если уже выполнялся поиск и есть кэшированный результат
-        if (_isSearchPerformed && !string.IsNullOrEmpty(_cachePythonExecutable))
-        {
-            return _cachePythonExecutable;
-        }
-
-        lock (_lock)
-        {
-            // Двойная проверка для потокобезопасности
-            if (_isSearchPerformed && !string.IsNullOrEmpty(_cachePythonExecutable))
-            {
-                return _cachePythonExecutable;
-            }
-
-            var result = FindPythonExecutable();
-            _cachePythonExecutable = result;
-            _isSearchPerformed = true;
-
-            return result;
-        }
+        return _pythonPath;
     }
 
-    public void ClearCache()
+    public string GetPyVersion()
     {
-        lock (_lock)
-        {
-            _cachePythonExecutable = "";
-            _isSearchPerformed = false;
-        }
+        return _pythonVersion;
     }
 
-    private string FindPythonExecutable()
+    private void ValidatePythonPath()
     {
-        var possiblePythonNames = new List<string>
+        if (string.IsNullOrEmpty(_pythonPath))
         {
-            "python3",
-            "python",
-            "python.exe",
-            "py",
-            "python3.exe"
-        };
+            throw new InvalidOperationException(
+                "Python executable path is not configured. " +
+                "Please set 'Python:ExecutablePath' in appsettings.json");
+        }
 
-        foreach (var pythonName in possiblePythonNames)
+        if (!File.Exists(_pythonPath))
         {
-            try
+            throw new FileNotFoundException(
+                $"Python executable not found at: {_pythonPath}");
+        }
+
+        // Проверяем, что это действительно Python
+        try
+        {
+            using var process = new Process
             {
-                using (var process = new Process())
+                StartInfo = new ProcessStartInfo
                 {
-                    process.StartInfo = new ProcessStartInfo
-                    {
-                        FileName = pythonName,
-                        Arguments = "--version",
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    };
-
-                    process.Start();
-                    process.WaitForExit(2000);
-
-                    if (process.ExitCode == 0)
-                    {
-                        var version = process.StandardOutput.ReadToEnd();
-                        if (string.IsNullOrEmpty(version))
-                            version = process.StandardError.ReadToEnd();
-
-                        Console.WriteLine($"Found Python at: {pythonName} ({version.Trim()})");
-                        return pythonName;
-                    }
+                    FileName = _pythonPath,
+                    Arguments = "--version",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
                 }
-            }
-            catch
-            {
-                
-            }
-        }
+            };
 
-        Console.WriteLine("Python not found. Using 'python3' as default.");
-        return "python3";
+            process.Start();
+            process.WaitForExit(3000);
+
+            if (process.ExitCode != 0)
+            {
+                throw new InvalidOperationException(
+                    $"File at {_pythonPath} is not a valid Python executable");
+            }
+
+            Console.WriteLine($"Using configured Python: {_pythonPath}");
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                $"Failed to validate Python at {_pythonPath}: {ex.Message}");
+        }
     }
 }

@@ -56,6 +56,7 @@ namespace AKAvR_IS.Classes.PythonExecution
                 Console.WriteLine("=== Python launch params ===");
                 Console.WriteLine($"FileName:               {_config.FileName}");
                 Console.WriteLine($"Arguments:              {BuildPythonArguments()}");
+                Console.WriteLine($"PythonPath:             {_config.PythonPath}");
                 Console.WriteLine($"WorkingDirectory:       {_config.WorkingDirectory}");
                 Console.WriteLine($"RedirectStandardOutput: {_config.RedirectStandardOutput}");
                 Console.WriteLine($"RedirectStandardError:  {_config.RedirectStandardError}");
@@ -70,15 +71,15 @@ namespace AKAvR_IS.Classes.PythonExecution
                 {
                     process.StartInfo = new ProcessStartInfo
                     {
-                        FileName = "python3",
-                        Arguments = _config.FileName + " " + BuildPythonArguments(),
-                        WorkingDirectory = _config.WorkingDirectory,
-                        RedirectStandardOutput = _config.RedirectStandardOutput,
-                        RedirectStandardError = _config.RedirectStandardError,
-                        UseShellExecute = false,
-                        CreateNoWindow = true,
-                        StandardOutputEncoding = _config.OutputEncoding,
-                        StandardErrorEncoding = _config.OutputEncoding
+                        FileName                = _config.PythonPath,
+                        Arguments               = _config.FileName + " " + BuildPythonArguments(),
+                        WorkingDirectory        = _config.WorkingDirectory,
+                        RedirectStandardOutput  = _config.RedirectStandardOutput,
+                        RedirectStandardError   = _config.RedirectStandardError,
+                        UseShellExecute         = false,
+                        CreateNoWindow          = true,
+                        StandardOutputEncoding  = _config.OutputEncoding,
+                        StandardErrorEncoding   = _config.OutputEncoding
                     };
 
                     var outputBuilder = new StringBuilder();
@@ -178,6 +179,11 @@ namespace AKAvR_IS.Classes.PythonExecution
         public void SetWorkingDirectory(string workingDirectory)
         {
             _config.WorkingDirectory = workingDirectory ?? throw new ArgumentNullException(nameof(workingDirectory));
+        }
+
+        public void SetPythonPath(string pythonPath)
+        {
+            _config.PythonPath = pythonPath ?? throw new ArgumentNullException(nameof(pythonPath));
         }
 
         public void SetTimeout(TimeSpan timeout)

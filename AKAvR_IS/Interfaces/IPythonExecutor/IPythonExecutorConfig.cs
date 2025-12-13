@@ -7,6 +7,8 @@ namespace AKAvR_IS.Interfaces.IPythonExecutor
         public string FileName { get; set; }
         public string WorkingDirectory { get; set; }
 
+        public string PythonPath { get; set; }
+
         public int TimeoutSeconds { get; set; }
         public int MaxConcurrentExecutions { get; set; }
 
