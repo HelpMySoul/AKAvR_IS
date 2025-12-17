@@ -7,6 +7,7 @@ namespace AKAvR_IS.Contexts
     public class ApplicationDbContext : DbContext
     {
         public DbSet<User> Users { get; set; }
+        public DbSet<UserFile> UserFiles { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
@@ -17,6 +18,7 @@ namespace AKAvR_IS.Contexts
         {
             base.OnModelCreating(modelBuilder);
 
+            // Конфигурация для User
             modelBuilder.Entity<User>().ToTable("Users");
 
             modelBuilder.Entity<User>(entity =>
@@ -30,6 +32,31 @@ namespace AKAvR_IS.Contexts
 
                 entity.HasIndex(e => e.Email).IsUnique();
                 entity.HasIndex(e => e.Username).IsUnique();
+            });
+
+            // Конфигурация для UserFile
+            modelBuilder.Entity<UserFile>().ToTable("User_Files");
+
+            modelBuilder.Entity<UserFile>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.FileName).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.FilePath).IsRequired().HasMaxLength(1000);
+                entity.Property(e => e.FileSize).IsRequired();
+                entity.Property(e => e.ContentType).HasMaxLength(100);
+                entity.Property(e => e.UploadDate).HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.Property(e => e.Description).HasMaxLength(1000);
+
+                // Внешний ключ к пользователю
+                entity.HasOne(e => e.User)
+                      .WithMany(u => u.Files)
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                // Индексы для оптимизации запросов
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.UploadDate);
+                entity.HasIndex(e => new { e.UserId, e.FileName });
             });
         }
     }

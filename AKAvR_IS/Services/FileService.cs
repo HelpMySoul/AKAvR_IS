@@ -1,21 +1,33 @@
 ﻿using AKAvR_IS.Classes.FileInfo;
+using AKAvR_IS.Classes.User;
+using AKAvR_IS.Contexts;
 using AKAvR_IS.Interfaces.IFileInfo;
 using AKAvR_IS.Interfaces.IFileService;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace AKAvR_IS.Services
 {
     public class FileService : IFileService
     {
-        private readonly string _uploadPath;
+        private readonly ApplicationDbContext _context;
+        private readonly string               _uploadPath;
         private readonly ILogger<FileService> _logger;
-        private readonly IFileStorageConfig _config;
+        private readonly IFileStorageConfig   _config;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public FileService(IConfiguration configuration, ILogger<FileService> logger)
+        public FileService(
+            ApplicationDbContext context,
+            IConfiguration configuration,
+            ILogger<FileService> logger,
+            IHttpContextAccessor httpContextAccessor)
         {
+            _context = context;
             _config = configuration.GetSection("FileStorage")
                 .Get<IFileStorageConfig>() ?? new FileStorageConfig();
-            
+
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
 
             if (string.IsNullOrWhiteSpace(_config.BasePath))
             {
@@ -54,6 +66,27 @@ namespace AKAvR_IS.Services
                     };
                 }
 
+                var userId = GetCurrentUserId();
+                if (userId == 0)
+                {
+                    return new UploadResult
+                    {
+                        Success = false,
+                        Message = "User not authenticated"
+                    };
+                }
+
+                // Проверяем существование пользователя
+                var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
+                if (!userExists)
+                {
+                    return new UploadResult
+                    {
+                        Success = false,
+                        Message = "User not found"
+                    };
+                }
+
                 var fileName = $"{Guid.NewGuid()}_{DateTime.Now:yyyyMMddHHmmss}{fileExtension}";
                 var filePath = Path.Combine(_uploadPath, fileName);
 
@@ -62,15 +95,37 @@ namespace AKAvR_IS.Services
                     await file.CopyToAsync(stream);
                 }
 
-                var fileInfo = new FileInfoDto
+                // Создаем запись в базе данных
+                var userFile = new UserFile
                 {
-                    FileName    = fileName,
-                    ContentType = file.ContentType,
-                    Size        = file.Length,
-                    UploadDate  = DateTime.UtcNow
+                    UserId           = userId,
+                    FileName         = Path.GetFileNameWithoutExtension(file.FileName),
+                    FilePath         = filePath,
+                    FileSize         = file.Length,
+                    ContentType      = file.ContentType,
+                    UploadDate       = DateTime.UtcNow,
+                    OriginalFileName = file.FileName,
+                    StoredFileName   = fileName
                 };
 
-                _logger.LogInformation($"File {fileName} successfully uploaded. Size: {file.Length} bytes");
+                // Добавляем в DbSet и сохраняем
+                await _context.UserFiles.AddAsync(userFile);
+                await _context.SaveChangesAsync();
+
+                // Создаем DTO для ответа
+                var fileInfo = new FileInfoDto
+                {
+                    Id               = userFile.Id,
+                    FileName         = userFile.FileName,
+                    OriginalFileName = userFile.OriginalFileName,
+                    FilePath         = userFile.FilePath,
+                    ContentType      = userFile.ContentType,
+                    Size             = userFile.FileSize,
+                    UploadDate       = userFile.UploadDate,
+                    UserId           = userFile.UserId
+                };
+
+                _logger.LogInformation($"File {fileName} successfully uploaded by user {userId}. Size: {file.Length} bytes. DB ID: {userFile.Id}");
 
                 return new UploadResult
                 {
@@ -101,35 +156,89 @@ namespace AKAvR_IS.Services
                     throw new FileNotFoundException($"File {fileName} not found");
                 }
 
-                var fileBytes = await File.ReadAllBytesAsync(filePath);
+                // Обновляем информацию о последнем доступе в базе данных
+                var userFile = await _context.UserFiles
+                    .FirstOrDefaultAsync(f => f.StoredFileName == fileName);
+
+                if (userFile != null)
+                {
+                    userFile.LastAccessed = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+
+                var fileBytes  = await File.ReadAllBytesAsync(filePath);
                 var contentType = GetContentType(fileName);
 
                 return (fileBytes, fileName, contentType);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error uploading file {fileName}");
+                _logger.LogError(ex, $"Error downloading file {fileName}");
                 throw;
             }
         }
 
         public async Task<IEnumerable<IFileInfoDto>> GetUploadedFilesInfoAsync()
         {
-            var files = Directory.GetFiles(_uploadPath, "*.csv");
-            var fileInfos = new List<FileInfoDto>();
-
-            foreach (var filePath in files)
+            try
             {
-                var fileInfo = new FileInfo(filePath);
-                fileInfos.Add(new FileInfoDto
-                {
-                    FileName   = Path.GetFileName(filePath),
-                    Size       = fileInfo.Length,
-                    UploadDate = fileInfo.CreationTimeUtc
-                });
-            }
+                // Получаем файлы из базы данных, а не из файловой системы
+                var userId = GetCurrentUserId();
 
-            return await Task.FromResult(fileInfos);
+                var files = await _context.UserFiles
+                    .Where(f => f.UserId == userId)
+                    .OrderByDescending(f => f.UploadDate)
+                    .Select(f => new FileInfoDto
+                    {
+                        Id               = f.Id,
+                        FileName         = f.FileName,
+                        OriginalFileName = f.OriginalFileName,
+                        FilePath         = f.FilePath,
+                        ContentType      = f.ContentType,
+                        Size             = f.FileSize,
+                        UploadDate       = f.UploadDate,
+                        LastAccessed     = f.LastAccessed,
+                        UserId           = f.UserId
+                    })
+                    .ToListAsync();
+
+                return files;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting uploaded files info");
+                return new List<FileInfoDto>();
+            }
+        }
+
+        public async Task<IEnumerable<IFileInfoDto>> GetAllFilesInfoAsync()
+        {
+            try
+            {
+                var files = await _context.UserFiles
+                    .Include(f => f.User)
+                    .OrderByDescending(f => f.UploadDate)
+                    .Select(f => new FileInfoDto
+                    {
+                        Id               = f.Id,
+                        FileName         = f.FileName,
+                        OriginalFileName = f.OriginalFileName,
+                        FilePath         = f.FilePath,
+                        ContentType      = f.ContentType,
+                        Size             = f.FileSize,
+                        UploadDate       = f.UploadDate,
+                        LastAccessed     = f.LastAccessed,
+                        UserId           = f.UserId
+                    })
+                    .ToListAsync();
+
+                return files;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all files info");
+                return new List<FileInfoDto>();
+            }
         }
 
         public async Task<bool> DeleteFileAsync(string fileName)
@@ -138,18 +247,114 @@ namespace AKAvR_IS.Services
             {
                 var filePath = Path.Combine(_uploadPath, fileName);
 
+                var userFile = await _context.UserFiles
+                    .FirstOrDefaultAsync(f => f.StoredFileName == fileName);
+
+                if (userFile != null)
+                {
+                    _context.UserFiles.Remove(userFile);
+                    await _context.SaveChangesAsync();
+                }
+
                 if (!File.Exists(filePath))
                 {
                     return false;
                 }
 
                 File.Delete(filePath);
-                _logger.LogInformation($"File {fileName} deleted");
+                _logger.LogInformation($"File {fileName} deleted. DB record removed: {(userFile != null ? "yes" : "no")}");
                 return await Task.FromResult(true);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error deleting file {fileName}");
+                return false;
+            }
+        }
+
+        public async Task<IFileInfoDto> GetFileInfoByIdAsync(int fileId)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+
+                var file = await _context.UserFiles
+                    .Where(f => f.Id == fileId && (f.UserId == userId || IsAdmin())) // Только свои файлы или админ
+                    .Select(f => new FileInfoDto
+                    {
+                        Id               = f.Id,
+                        FileName         = f.FileName,
+                        OriginalFileName = f.OriginalFileName,
+                        FilePath         = f.FilePath,
+                        ContentType      = f.ContentType,
+                        Size             = f.FileSize,
+                        UploadDate       = f.UploadDate,
+                        LastAccessed     = f.LastAccessed,
+                        UserId           = f.UserId
+                    })
+                    .FirstOrDefaultAsync();
+
+                return file;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting file info by ID {fileId}");
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateFileInfoAsync(int fileId, string description)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+
+                var userFile = await _context.UserFiles
+                    .FirstOrDefaultAsync(f => f.Id == fileId && f.UserId == userId);
+
+                if (userFile == null)
+                {
+                    return false;
+                }
+
+                userFile.Description = description;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"File {fileId} description updated by user {userId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating file info for ID {fileId}");
+                return false;
+            }
+        }
+
+        private int GetCurrentUserId()
+        {
+            try
+            {
+                var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (int.TryParse(userIdClaim, out int userId))
+                {
+                    return userId;
+                }
+                return 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private bool IsAdmin()
+        {
+            try
+            {
+                return _httpContextAccessor.HttpContext?.User?.IsInRole("Admin") ?? false;
+            }
+            catch
+            {
                 return false;
             }
         }
@@ -163,5 +368,5 @@ namespace AKAvR_IS.Services
                 _ => "application/octet-stream"
             };
         }
-    }
+    }    
 }

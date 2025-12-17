@@ -9,7 +9,7 @@ namespace AKAvR_IS.Controllers
     [Route("api/[controller]")]
     public class FilesController : ControllerBase
     {
-        private readonly IFileService _fileService;
+        private readonly IFileService             _fileService;
         private readonly ILogger<FilesController> _logger;
 
         public FilesController(IFileService fileService, ILogger<FilesController> logger)

@@ -39,7 +39,8 @@ internal class UserService : IUserService
             Username = request.Username,
             Password = passwordHash,
             CreatedAt = DateTime.UtcNow,
-            IsActive = true
+            IsActive = true,
+            Files = new List<UserFile>() { }
         };
 
         // Сохраняем в базу данных

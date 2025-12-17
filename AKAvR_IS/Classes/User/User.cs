@@ -1,4 +1,5 @@
-﻿using AKAvR_IS.Interfaces.IUser;
+﻿using AKAvR_IS.Contexts;
+using AKAvR_IS.Interfaces.IUser;
 using System.ComponentModel.DataAnnotations;
 
 namespace AKAvR_IS.Classes.User
@@ -22,6 +23,8 @@ namespace AKAvR_IS.Classes.User
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public bool IsActive { get; set; }
+
+        public virtual required ICollection<UserFile> Files { get; set; }
     }
 
     public class CreateUserRequest

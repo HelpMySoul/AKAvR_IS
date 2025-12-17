@@ -1,8 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
+﻿using AKAvR_IS.Classes.User;
 using AKAvR_IS.Interfaces.IUser;
-using AKAvR_IS.Classes.User;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace AKAvR_IS.Controllers
 {
@@ -10,11 +14,13 @@ namespace AKAvR_IS.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IUserService _userService;
+        private readonly IUserService   _userService;
+        private readonly IConfiguration _configuration;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, IConfiguration configuration)
         {
-            _userService = userService;
+            _userService   = userService;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -69,17 +75,49 @@ namespace AKAvR_IS.Controllers
                 return BadRequest(ModelState);
             }
 
-           var user = await _userService.LoginUserAsync(request);            
+            var user = await _userService.LoginUserAsync(request);
+
+            var token = GenerateJwtToken(user);
 
             var loginResponse = new
             {
                 user.Id,
                 user.Username,
                 user.Email,
+                Token = token,
                 message = "Вход выполнен успешно"
             };
 
             return Ok(loginResponse);
+        }
+
+        private string GenerateJwtToken(IUser user)
+        {
+            var jwtKey = _configuration["Jwt:Key"];
+
+            if (string.IsNullOrEmpty(jwtKey))
+            {
+                throw new InvalidOperationException("JWT Key is not configured");
+            }
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email)
+            };
+
+            var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer:   _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.Now.AddHours(1),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         [HttpPut("{id}")]
