@@ -1,0 +1,10 @@
+﻿namespace AKAvR_IS.Interfaces.IFileInfo
+{
+    public interface IFileInfoDto
+    {
+        string FileName     { get; set; }
+        string ContentType  { get; set; }
+        long Size           { get; set; }
+        DateTime UploadDate { get; set; }
+    }
+}

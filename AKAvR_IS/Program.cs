@@ -1,9 +1,11 @@
 using AKAvR_IS.Classes.PythonExecution;
 using AKAvR_IS.Contexts;
 using AKAvR_IS.Controllers;
+using AKAvR_IS.Interfaces.IFileService;
 using AKAvR_IS.Interfaces.IPythonExecutor;
 using AKAvR_IS.Interfaces.IUser;
 using AKAvR_IS.Services;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -16,12 +18,19 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IFileService, FileService>();
 
-// ???????? ?? Singleton
+
 builder.Services.AddSingleton<IPythonEnvironmentHelper, PythonEnvironmentHelper>();
 
 builder.Services.Configure<PythonExecutorConfig>(
     builder.Configuration.GetSection("PythonExecutorConfig"));
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = long.MaxValue;
+});
 
 builder.Services.AddSingleton<IPythonExecutorService>(provider =>
 {
