@@ -1,5 +1,6 @@
 ﻿using AKAvR_IS.Classes.User;
 using AKAvR_IS.Interfaces.IUser;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -169,6 +170,49 @@ namespace AKAvR_IS.Controllers
             var users = await _userService.SearchUsersAsync(username);
 
             return Ok(users);
+        }
+
+        [HttpGet("userinfo")]
+        [Authorize]
+        public async Task<IActionResult> GetUserInfo()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (userIdClaim == null)
+                {
+                    return Unauthorized(new { message = "Токен не содержит идентификатор пользователя" });
+                }
+
+                if (!int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    return BadRequest(new { message = "Неверный формат идентификатора пользователя" });
+                }
+
+                var user = await _userService.GetUserAsync(userId);
+
+                if (user == null || !user.IsActive)
+                {
+                    return NotFound(new { message = "Пользователь не найден" });
+                }
+
+                var userInfo = new
+                {
+                    user.Id,
+                    user.Username,
+                    user.Email,
+                    user.CreatedAt,
+                    user.UpdatedAt,
+                    Claims = User.Claims.Select(c => new { c.Type, c.Value })
+                };
+
+                return Ok(userInfo);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Ошибка при получении информации о пользователе", error = ex.Message });
+            }
         }
     }    
 }
