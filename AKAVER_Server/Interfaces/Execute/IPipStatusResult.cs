@@ -1,4 +1,4 @@
-﻿namespace AKAvR_IS.Interfaces.Execute
+﻿namespace AKAVER_Server.Interfaces.Execute
 {
     public interface IPipStatusResult
     {

@@ -1,13 +1,13 @@
-﻿using AKAvR_IS.Classes.Execution;
-using AKAvR_IS.Classes.PythonExecution;
-using AKAvR_IS.Classes.PythonExecutorResult;
-using AKAvR_IS.Classes.Structures.PythonExecutor;
-using AKAvR_IS.Interfaces.Execute;
-using AKAvR_IS.Interfaces.IPythonExecutor;
-using AKAvR_IS.Interfaces.IPythonExecutorResult;
+﻿using AKAVER_Server.Classes.Execution;
+using AKAVER_Server.Classes.PythonExecution;
+using AKAVER_Server.Classes.PythonExecutorResult;
+using AKAVER_Server.Classes.Structures.PythonExecutor;
+using AKAVER_Server.Interfaces.Execute;
+using AKAVER_Server.Interfaces.IPythonExecutor;
+using AKAVER_Server.Interfaces.IPythonExecutorResult;
 using System.Diagnostics;
 
-namespace AKAvR_IS.Services
+namespace AKAVER_Server.Services
 {
     public class PythonExecutorService : IPythonExecutorService, IDisposable
     {

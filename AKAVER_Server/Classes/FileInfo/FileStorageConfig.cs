@@ -1,10 +1,11 @@
-﻿using AKAvR_IS.Interfaces.IFileInfo;
+﻿using AKAVER_Server.Interfaces.IFileInfo;
 
-namespace AKAvR_IS.Classes.FileInfo
+namespace AKAVER_Server.Classes.FileInfo
 {
-    internal class FileStorageConfig : IFileStorageConfig
+    public class FileStorageConfig : IFileStorageConfig
     {
-        public string BasePath { get; set; }       = string.Empty;
-        public string ExamplesFolder { get; set; } = "examples";
+        public string BasePath     { get; set; }   = "";
+        public string InputFolder  { get; set; }   = "input";
+        public string OutputFolder { get; set; }   = "output";
     }
 }

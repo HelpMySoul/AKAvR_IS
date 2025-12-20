@@ -1,6 +1,6 @@
-﻿using AKAvR_IS.Interfaces.IPythonExecutorResult;
+﻿using AKAVER_Server.Interfaces.IPythonExecutorResult;
 
-namespace AKAvR_IS.Classes.PythonExecutorResult
+namespace AKAVER_Server.Classes.PythonExecutorResult
 {
     internal class TestInstallResult : ITestInstallResult
     {

@@ -1,8 +1,8 @@
-﻿using AKAvR_IS.Contexts;
-using AKAvR_IS.Interfaces.IUser;
+﻿using AKAVER_Server.Contexts;
+using AKAVER_Server.Interfaces.IUser;
 using System.ComponentModel.DataAnnotations;
 
-namespace AKAvR_IS.Classes.User
+namespace AKAVER_Server.Classes.User
 {
     // Модели данных
     public class User : IUser

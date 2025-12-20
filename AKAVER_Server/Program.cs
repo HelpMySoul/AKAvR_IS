@@ -1,10 +1,12 @@
-﻿using AKAvR_IS.Classes.PythonExecution;
-using AKAvR_IS.Contexts;
-using AKAvR_IS.Controllers;
-using AKAvR_IS.Interfaces.IFileService;
-using AKAvR_IS.Interfaces.IPythonExecutor;
-using AKAvR_IS.Interfaces.IUser;
-using AKAvR_IS.Services;
+﻿using AKAVER_Server.Classes.FileInfo;
+using AKAVER_Server.Classes.PythonExecution;
+using AKAVER_Server.Contexts;
+using AKAVER_Server.Controllers;
+using AKAVER_Server.Interfaces.IFileInfo;
+using AKAVER_Server.Interfaces.IFileService;
+using AKAVER_Server.Interfaces.IPythonExecutor;
+using AKAVER_Server.Interfaces.IUser;
+using AKAVER_Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
@@ -32,6 +34,12 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFileService, FileService>();
 
+builder.Services.Configure<FileStorageConfig>(
+	builder.Configuration.GetSection("FileStorage"));
+
+builder.Services.AddSingleton<IFileStorageConfig>(sp =>
+	sp.GetRequiredService<IOptions<FileStorageConfig>>().Value);
+
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAuthentication(options =>
@@ -43,7 +51,7 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
+        ValidateIssuer   = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
@@ -99,10 +107,12 @@ builder.Services.AddSingleton<IPythonExecutorService>(provider =>
         c.WorkingDirectory = string.IsNullOrEmpty(config.WorkingDirectory)
             ? Directory.GetCurrentDirectory()
             : config.WorkingDirectory;
-        c.TimeoutSeconds = config.TimeoutSeconds;
+        c.CsvInputFolder         = config.CsvInputFolder;
+        c.CsvOutputFolder        = config.CsvOutputFolder;
+        c.TimeoutSeconds         = config.TimeoutSeconds;
         c.RedirectStandardOutput = config.RedirectStandardError;
-        c.RedirectStandardError = config.RedirectStandardError;
-        c.OutputEncoding = config.OutputEncoding;
+        c.RedirectStandardError  = config.RedirectStandardError;
+        c.OutputEncoding         = config.OutputEncoding;
     });
 
     return service;
@@ -121,7 +131,7 @@ builder.Services.AddSwaggerGen(options =>
         Description = "API для системы AKAVER"
     });
 
-    // Добавляем схему безопасности
+    // Cхема безопасности
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",

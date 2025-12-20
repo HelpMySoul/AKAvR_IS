@@ -1,7 +1,7 @@
-﻿using AKAvR_IS.Classes.FileInfo;
-using AKAvR_IS.Interfaces.IFileInfo;
+﻿using AKAVER_Server.Classes.FileInfo;
+using AKAVER_Server.Interfaces.IFileInfo;
 
-namespace AKAvR_IS.Interfaces.IFileService
+namespace AKAVER_Server.Interfaces.IFileService
 {
     public interface IFileService
     {

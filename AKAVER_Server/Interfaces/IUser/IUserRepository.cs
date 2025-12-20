@@ -1,6 +1,6 @@
 ﻿
 
-namespace AKAvR_IS.Interfaces.IUser
+namespace AKAVER_Server.Interfaces.IUser
 {
     public interface IUserRepository
     {

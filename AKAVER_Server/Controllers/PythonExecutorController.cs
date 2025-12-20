@@ -1,8 +1,8 @@
-﻿using AKAvR_IS.Classes.Execution;
-using AKAvR_IS.Classes.Execution.Batch;
-using AKAvR_IS.Classes.RequestParams;
-using AKAvR_IS.Classes.Structures.PythonExecutor;
-using AKAvR_IS.Interfaces.IPythonExecutor;
+﻿using AKAVER_Server.Classes.Execution;
+using AKAVER_Server.Classes.Execution.Batch;
+using AKAVER_Server.Classes.RequestParams;
+using AKAVER_Server.Classes.Structures.PythonExecutor;
+using AKAVER_Server.Interfaces.IPythonExecutor;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;

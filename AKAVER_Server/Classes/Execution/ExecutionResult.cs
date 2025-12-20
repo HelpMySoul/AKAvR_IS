@@ -1,6 +1,6 @@
-﻿using AKAvR_IS.Interfaces.IPythonExecutor;
+﻿using AKAVER_Server.Interfaces.IPythonExecutor;
 
-namespace AKAvR_IS.Classes.Execution
+namespace AKAVER_Server.Classes.Execution
 {
     public class ExecutionResult
     {

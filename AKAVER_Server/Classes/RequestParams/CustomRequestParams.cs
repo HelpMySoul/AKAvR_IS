@@ -1,6 +1,6 @@
-﻿using AKAvR_IS.Interfaces.IPythonExecutor;
+﻿using AKAVER_Server.Interfaces.IPythonExecutor;
 
-namespace AKAvR_IS.Classes.RequestParams
+namespace AKAVER_Server.Classes.RequestParams
 {
     public class CustomRequestParams : IRequestParam
     {

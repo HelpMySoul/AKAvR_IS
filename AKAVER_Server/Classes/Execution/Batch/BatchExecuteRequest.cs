@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace AKAvR_IS.Classes.Execution.Batch
+namespace AKAVER_Server.Classes.Execution.Batch
 {
     public class BatchExecuteRequest
     {

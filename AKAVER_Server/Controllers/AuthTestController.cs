@@ -1,9 +1,9 @@
-﻿using AKAvR_IS.Classes.User;
+﻿using AKAVER_Server.Classes.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace AKAvR_IS.Controllers
+namespace AKAVER_Server.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

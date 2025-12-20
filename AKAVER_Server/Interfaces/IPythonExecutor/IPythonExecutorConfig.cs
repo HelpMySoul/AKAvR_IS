@@ -1,11 +1,14 @@
 ﻿using System.Text;
 
-namespace AKAvR_IS.Interfaces.IPythonExecutor
+namespace AKAVER_Server.Interfaces.IPythonExecutor
 {
     public interface IPythonExecutorConfig
     {
         public string FileName { get; set; }
         public string WorkingDirectory { get; set; }
+
+        public string CsvInputFolder { get; set; }
+        public string CsvOutputFolder { get; set; }
 
         public string PythonPath { get; set; }
 

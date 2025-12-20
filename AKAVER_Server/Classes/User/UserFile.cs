@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace AKAvR_IS.Classes.User
+namespace AKAVER_Server.Classes.User
 {
     [Table("User_Files")]
     public class UserFile

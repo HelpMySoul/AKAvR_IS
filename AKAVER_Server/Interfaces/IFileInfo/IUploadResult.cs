@@ -1,6 +1,6 @@
-﻿using AKAvR_IS.Classes.FileInfo;
+﻿using AKAVER_Server.Classes.FileInfo;
 
-namespace AKAvR_IS.Interfaces.IFileInfo
+namespace AKAVER_Server.Interfaces.IFileInfo
 {
     public interface IUploadResult
     {

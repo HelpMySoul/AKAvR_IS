@@ -1,6 +1,6 @@
-﻿using AKAvR_IS.Interfaces.Execute;
+﻿using AKAVER_Server.Interfaces.Execute;
 
-namespace AKAvR_IS.Classes.Execution
+namespace AKAVER_Server.Classes.Execution
 {
     public class ExecutionValidationResult : IExecutionValidationResult
     {

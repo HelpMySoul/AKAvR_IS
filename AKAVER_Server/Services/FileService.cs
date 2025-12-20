@@ -1,17 +1,19 @@
-﻿using AKAvR_IS.Classes.FileInfo;
-using AKAvR_IS.Classes.User;
-using AKAvR_IS.Contexts;
-using AKAvR_IS.Interfaces.IFileInfo;
-using AKAvR_IS.Interfaces.IFileService;
+﻿using AKAVER_Server.Classes.FileInfo;
+using AKAVER_Server.Classes.User;
+using AKAVER_Server.Contexts;
+using AKAVER_Server.Interfaces.IFileInfo;
+using AKAVER_Server.Interfaces.IFileService;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 
-namespace AKAvR_IS.Services
+namespace AKAVER_Server.Services
 {
     public class FileService : IFileService
     {
         private readonly ApplicationDbContext _context;
         private readonly string               _uploadPath;
+        private readonly string               _downloadPath;
         private readonly ILogger<FileService> _logger;
         private readonly IFileStorageConfig   _config;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -20,11 +22,11 @@ namespace AKAvR_IS.Services
             ApplicationDbContext context,
             IConfiguration configuration,
             ILogger<FileService> logger,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IOptions<FileStorageConfig> configOptions)
         {
             _context = context;
-            _config = configuration.GetSection("FileStorage")
-                .Get<IFileStorageConfig>() ?? new FileStorageConfig();
+            _config = configOptions.Value;
 
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
@@ -35,7 +37,8 @@ namespace AKAvR_IS.Services
                     .Value ?? Directory.GetCurrentDirectory();
             }
 
-            _uploadPath = Path.Combine(_config.BasePath, _config.ExamplesFolder);
+            _uploadPath   = Path.Combine(_config.BasePath, _config.InputFolder);
+            _downloadPath = Path.Combine(_config.BasePath, _config.OutputFolder);
 
             if (!Directory.Exists(_uploadPath))
             {
@@ -116,7 +119,7 @@ namespace AKAvR_IS.Services
                 var fileInfo = new FileInfoDto
                 {
                     Id               = userFile.Id,
-                    FileName         = userFile.FileName,
+                    FileName         = userFile.StoredFileName,
                     OriginalFileName = userFile.OriginalFileName,
                     FilePath         = userFile.FilePath,
                     ContentType      = userFile.ContentType,
@@ -149,7 +152,7 @@ namespace AKAvR_IS.Services
         {
             try
             {
-                var filePath = Path.Combine(_uploadPath, fileName);
+                var filePath = Path.Combine(_downloadPath, fileName);
 
                 if (!File.Exists(filePath))
                 {

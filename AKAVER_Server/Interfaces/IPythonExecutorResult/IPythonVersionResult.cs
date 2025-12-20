@@ -1,4 +1,4 @@
-﻿namespace AKAvR_IS.Interfaces.IPythonExecutorResult
+﻿namespace AKAVER_Server.Interfaces.IPythonExecutorResult
 {
     public interface IPythonVersionResult
     {

@@ -1,8 +1,8 @@
-﻿using AKAvR_IS.Classes.FileInfo;
-using AKAvR_IS.Interfaces.IFileService;
+﻿using AKAVER_Server.Classes.FileInfo;
+using AKAVER_Server.Interfaces.IFileService;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AKAvR_IS.Controllers
+namespace AKAVER_Server.Controllers
 {
     // Controllers/FilesController.cs
     [ApiController]

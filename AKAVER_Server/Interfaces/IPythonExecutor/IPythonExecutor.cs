@@ -1,4 +1,4 @@
-﻿namespace AKAvR_IS.Interfaces.IPythonExecutor
+﻿namespace AKAVER_Server.Interfaces.IPythonExecutor
 {
     public interface IPythonExecutor
     {

@@ -1,6 +1,6 @@
-﻿using AKAvR_IS.Classes.User;
+﻿using AKAVER_Server.Classes.User;
 
-namespace AKAvR_IS.Interfaces.IUser
+namespace AKAVER_Server.Interfaces.IUser
 {
     public interface IUserService
     {

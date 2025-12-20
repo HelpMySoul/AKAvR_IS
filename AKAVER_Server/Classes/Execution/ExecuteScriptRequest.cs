@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace AKAvR_IS.Classes.Execution
+namespace AKAVER_Server.Classes.Execution
 {
     public class ExecuteScriptRequest
     {

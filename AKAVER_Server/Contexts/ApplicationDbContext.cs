@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using AKAvR_IS.Interfaces.IUser;
-using AKAvR_IS.Classes.User;
+using AKAVER_Server.Interfaces.IUser;
+using AKAVER_Server.Classes.User;
 
-namespace AKAvR_IS.Contexts
+namespace AKAVER_Server.Contexts
 {
     public class ApplicationDbContext : DbContext
     {

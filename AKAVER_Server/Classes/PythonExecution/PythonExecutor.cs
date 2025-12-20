@@ -1,5 +1,5 @@
-﻿using AKAvR_IS.Interfaces;
-using AKAvR_IS.Interfaces.IPythonExecutor;
+﻿using AKAVER_Server.Interfaces;
+using AKAVER_Server.Interfaces.IPythonExecutor;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AKAvR_IS.Classes.PythonExecution
+namespace AKAVER_Server.Classes.PythonExecution
 {
     public class PythonExecutor : IPythonExecutor
     {
@@ -58,6 +58,8 @@ namespace AKAvR_IS.Classes.PythonExecution
                 Console.WriteLine($"Arguments:              {BuildPythonArguments()}");
                 Console.WriteLine($"PythonPath:             {_config.PythonPath}");
                 Console.WriteLine($"WorkingDirectory:       {_config.WorkingDirectory}");
+                Console.WriteLine($"CsvInputFolder:         {_config.CsvInputFolder}");
+                Console.WriteLine($"CsvOutputFolder:        {_config.CsvOutputFolder}");
                 Console.WriteLine($"RedirectStandardOutput: {_config.RedirectStandardOutput}");
                 Console.WriteLine($"RedirectStandardError:  {_config.RedirectStandardError}");
                 Console.WriteLine($"UseShellExecute:        {false}");
@@ -69,10 +71,14 @@ namespace AKAvR_IS.Classes.PythonExecution
                 
                 using (var process = new Process())
                 {
+
+                    var pythonScript = _config.FileName;
+                    var arguments = BuildPythonArguments(_config.CsvInputFolder);
+                    
                     process.StartInfo = new ProcessStartInfo
                     {
                         FileName                = _config.PythonPath,
-                        Arguments               = _config.FileName + " " + BuildPythonArguments(),
+                        Arguments               = $"{pythonScript} {arguments}",
                         WorkingDirectory        = _config.WorkingDirectory,
                         RedirectStandardOutput  = _config.RedirectStandardOutput,
                         RedirectStandardError   = _config.RedirectStandardError,
@@ -209,14 +215,13 @@ namespace AKAvR_IS.Classes.PythonExecution
             return _lastExitCode;
         }
 
-        private string BuildPythonArguments() // TODO: Изменить отправку параметров, если будет необходимо
+        private string BuildPythonArguments(string folder = "") 
         {            
             var args = new List<string>();
 
             foreach (var param in _requestParams)
             {
-                args.Add(param.ParameterName);
-                args.Add(Convert.ToString(param.Value) ?? string.Empty);
+                args.Add(folder + Convert.ToString(param.Value) ?? string.Empty);
             }
 
             return string.Join(" ", args);

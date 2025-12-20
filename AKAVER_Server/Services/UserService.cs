@@ -1,6 +1,6 @@
-﻿using AKAvR_IS.Classes.User;
-using AKAvR_IS.Contexts;
-using AKAvR_IS.Interfaces.IUser;
+﻿using AKAVER_Server.Classes.User;
+using AKAVER_Server.Contexts;
+using AKAVER_Server.Interfaces.IUser;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore; // Если используете Entity Framework
 

@@ -1,4 +1,4 @@
-﻿namespace AKAvR_IS.Interfaces.IFileInfo
+﻿namespace AKAVER_Server.Interfaces.IFileInfo
 {
     public interface IFileInfoDto
     {

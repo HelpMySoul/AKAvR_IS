@@ -1,8 +1,9 @@
-﻿namespace AKAvR_IS.Interfaces.IFileInfo
+﻿namespace AKAVER_Server.Interfaces.IFileInfo
 {
     public interface IFileStorageConfig
     {
         string BasePath { get; set; }
-        string ExamplesFolder { get; set; }
+        string InputFolder  { get; set; }
+        string OutputFolder { get; set; }
     }
 }

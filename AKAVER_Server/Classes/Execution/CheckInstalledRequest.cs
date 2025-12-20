@@ -1,4 +1,4 @@
-﻿namespace AKAvR_IS.Classes.Execution
+﻿namespace AKAVER_Server.Classes.Execution
 {
     public class CheckInstalledRequest
     {

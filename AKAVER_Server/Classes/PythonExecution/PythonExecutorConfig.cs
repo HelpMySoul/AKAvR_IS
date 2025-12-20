@@ -1,13 +1,15 @@
-﻿using AKAvR_IS.Interfaces.IPythonExecutor;
+﻿using AKAVER_Server.Interfaces.IPythonExecutor;
 using System.Text;
 
-namespace AKAvR_IS.Classes.PythonExecution
+namespace AKAVER_Server.Classes.PythonExecution
 {
     public class PythonExecutorConfig : IPythonExecutorConfig
     {
         public string FileName         { get; set; } = "file_name";
         public string PythonPath       { get; set; } = "python3";
         public string WorkingDirectory { get; set; } = Directory.GetCurrentDirectory();
+        public string CsvInputFolder   { get; set; } = "input/";
+        public string CsvOutputFolder  { get; set; } = "output/";
 
         public int TimeoutSeconds          { get; set; } = 300;
         public int MaxConcurrentExecutions { get; set; } = 2;

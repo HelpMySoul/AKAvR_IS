@@ -1,4 +1,4 @@
-﻿using AKAvR_IS.Interfaces.Execute;
+﻿using AKAVER_Server.Interfaces.Execute;
 
 public class LibraryInstallationResult : ILibraryInstallationResult 
 { 
