@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36623.8
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AKAVER_Server", "AKAvR_IS\AKAVER_Server.csproj", "{79D4925A-38B6-4148-ACE5-1B1F2C2390D6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AKAVER_Server", "AKAVER_Server\AKAVER_Server.csproj", "{79D4925A-38B6-4148-ACE5-1B1F2C2390D6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

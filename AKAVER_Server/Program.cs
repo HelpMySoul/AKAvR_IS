@@ -108,9 +108,9 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "AKAvR API",
+        Title = "AKAVER API",
         Version = "v1",
-        Description = "API для системы AKAvR"
+        Description = "API для системы AKAVER"
     });
 
     // Добавляем схему безопасности
